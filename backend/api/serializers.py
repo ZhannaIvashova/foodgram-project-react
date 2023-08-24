@@ -75,8 +75,7 @@ class ChangePasswordSerializer(PasswordSerializer):
                 raise serializers.ValidationError(
                     'Пароли не могут быть оинаковыми')
         else:
-            raise serializers.ValidationError(
-               'Ведите корректный текущий пароль')
+            raise serializers.ValidationError('Ведите корректный пароль')
 
         try:
             validate_password(data.get('new_password'), user)
@@ -394,7 +393,7 @@ class RecipeSerializer(serializers.ModelSerializer):
         instance.text = validated_data.get('text', instance.text)
         instance.cooking_time = validated_data.get(
             'cooking_time', instance.cooking_time
-            )
+        )
         instance.image = validated_data.get('image', instance.image)
 
         if 'ingredients' in validated_data:

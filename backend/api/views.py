@@ -26,7 +26,7 @@ from foodgram.settings import (
 )
 from recipes.models import (
     Favorite, Ingredient, IngredientRecipe, Recipe, ShoppingCart, Tag
-    )
+)
 from users.models import Subscribe
 
 User = get_user_model()

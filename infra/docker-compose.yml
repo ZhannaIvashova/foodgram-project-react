@@ -14,10 +14,10 @@ services:
       - db_pg:/var/lib/postgresql/data
 
   backend:
-    image: zhanna123/foodgram_backend
-    #build: 
-        #context: ../backend
-        #dockerfile: Dockerfile
+    #image: zhanna123/foodgram_backend
+    build: 
+        context: ../backend
+        dockerfile: Dockerfile
     env_file: ../.env
     volumes:
       - static:/app/static
@@ -26,17 +26,17 @@ services:
       - db    
 
   frontend:
-    image: zhanna123/foodgram_frontend
-    #build:
-      #context: ../frontend
-      #dockerfile: Dockerfile
+    #image: zhanna123/foodgram_frontend
+    build:
+      context: ../frontend
+      dockerfile: Dockerfile
     volumes:
       - ../frontend/:/app/result_build/
 
   nginx:
     image: nginx:1.19.3
     ports:
-      - 8080:80 #80:80
+      - 8080:80
     volumes:
       - ./nginx.conf:/etc/nginx/conf.d/default.conf
       - ../frontend/build:/usr/share/nginx/html/

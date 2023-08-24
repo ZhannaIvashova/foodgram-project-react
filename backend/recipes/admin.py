@@ -1,7 +1,6 @@
 from django.contrib import admin
-
 from recipes.models import (
-    Favorite, Ingredient, IngredientRecipe, 
+    Favorite, Ingredient, IngredientRecipe,
     Recipe, ShoppingCart, Tag, TagRecipe
 )
 
@@ -55,7 +54,7 @@ class RecipeAdmin(admin.ModelAdmin):
     def is_favorited(self, obj):
         favorite_count = obj.favorite.count()
         return favorite_count
-    
+
     is_favorited.short_description = 'Добавлен в избранное (кол.раз)'
 
 
@@ -71,12 +70,13 @@ class IngredientRecipeAdmin(admin.ModelAdmin):
         'amount'
     )
     list_filter = ('ingredient', 'recipe')
-    search_fields = ('ingredient', 'recipe') 
+    search_fields = ('ingredient', 'recipe')
+
 
 @admin.register(TagRecipe)
 class TagRecipeAdmin(admin.ModelAdmin):
     """Настройки соответствия рецептов и тегов."""
-    
+
     empty_value_display = '-отсутствует-'
     list_display = (
         'pk',
@@ -86,22 +86,24 @@ class TagRecipeAdmin(admin.ModelAdmin):
     list_filter = ('tag', 'recipe')
     search_fields = ('tag', 'recipe')
 
+
 @admin.register(Favorite)
 class FavoriteAdmin(admin.ModelAdmin):
     list_display = (
-        'pk', 
-        'user', 
+        'pk',
+        'user',
         'recipe'
     )
     search_fields = ('pk', 'user')
     empty_value_display = '-пусто-'
 
+
 @admin.register(ShoppingCart)
 class ShoppingCartAdmin(admin.ModelAdmin):
     list_display = (
-        'pk', 
-        'user', 
+        'pk',
+        'user',
         'recipe'
     )
     search_fields = ('pk', 'user')
-    empty_value_display = '-пусто-'               
+    empty_value_display = '-пусто-'
