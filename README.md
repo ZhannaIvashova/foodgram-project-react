@@ -41,9 +41,9 @@ docker compose exec backend python manage.py collectstatic
 docker-compose exec backend python manage.py ingredients_import
 ```
 ### Пользователи для проекта на удаленном сервере
-Админ: логин: user1, почта: user1@gmail.com, пароль: Uu123456
-Тестовый пользователь1: user2, user2@gmail.com, ss123456
-Тестовый пользователь2: user3, user3@gmail.com, rr123456
+- Админ: логин: user1, почта: user1@gmail.com, пароль: Uu123456
+- Тестовый пользователь1: user2, user2@gmail.com, ss123456
+- Тестовый пользователь2: user3, user3@gmail.com, rr123456
 
 ### Обратная связь
 IvashovaHome@yandex.ru
