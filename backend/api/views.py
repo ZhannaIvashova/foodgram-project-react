@@ -76,8 +76,8 @@ class UserViewSet(viewsets.ModelViewSet):
             return Response({'detail': 'Пароль успешно изменен'})
 
         return Response(
-                serializer.errors, status=status.HTTP_400_BAD_REQUEST
-            )
+            serializer.errors, status=status.HTTP_400_BAD_REQUEST
+        )
 
     @action(
         methods=('GET',),

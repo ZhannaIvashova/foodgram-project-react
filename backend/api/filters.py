@@ -31,7 +31,7 @@ class RecipeFilter(filters.FilterSet):
             return queryset.none()
 
         recipes_id = user.favorite.filter(user=user).values_list(
-                'recipe', flat=True)
+            'recipe', flat=True)
         return queryset.filter(id__in=recipes_id) if value else queryset.all()
 
     def get_shopping_cart(self, queryset, name, value):
