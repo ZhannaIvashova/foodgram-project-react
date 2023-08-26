@@ -5,7 +5,8 @@ from rest_framework import routers
 
 from api.views import (
     FavoriteViewSet, IngredientViewSet, RecipeViewSet,
-    ShoppingCartViewSet, SubscribeViewSet, TagViewSet, UserViewSet
+    ShoppingCartViewSet, SubscribeViewSet, TagViewSet,
+    UserViewSet
 )
 
 app_name = 'api'

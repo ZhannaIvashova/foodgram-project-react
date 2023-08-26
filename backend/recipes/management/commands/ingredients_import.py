@@ -3,13 +3,15 @@ import os
 
 from django.conf import settings
 from django.core.management.base import BaseCommand
+
 from recipes.models import Ingredient
 
 
 class Command(BaseCommand):
     """Команда для импорта csv в базу.
     Вызов python manage.py ingredients_import из терминала в соответствующей
-    папке."""
+    папке.
+    """
 
     help = 'Импорт csv файлов в таблицы базы.'
 

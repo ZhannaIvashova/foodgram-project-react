@@ -1,14 +1,10 @@
 from django_filters import rest_framework as filters
+
 from recipes.models import Ingredient, Recipe, Tag
 
 
 class RecipeFilter(filters.FilterSet):
     """Фильтр выборки рецепта по избранному, автору, списку покупок и тегам."""
-
-    CHOICES = (
-        ('0', 'False'),
-        ('1', 'True')
-    )
 
     author = filters.CharFilter(
         field_name='author'
@@ -18,12 +14,10 @@ class RecipeFilter(filters.FilterSet):
         to_field_name='slug',
         queryset=Tag.objects.all()
     )
-    is_favorited = filters.ChoiceFilter(
-        choices=CHOICES,
+    is_favorited = filters.BooleanFilter(
         method='get_is_favorited'
     )
-    is_in_shopping_cart = filters.ChoiceFilter(
-        choices=CHOICES,
+    is_in_shopping_cart = filters.BooleanFilter(
         method='get_shopping_cart'
     )
 
@@ -33,25 +27,21 @@ class RecipeFilter(filters.FilterSet):
 
     def get_is_favorited(self, queryset, name, value):
         user = self.request.user
-        if user.is_authenticated:
-            user_obj = user.favorite.all()
-            recipes_id_list = [obj.recipe_id for obj in user_obj]
-            return (
-                queryset.filter(id__in=recipes_id_list) if value == '1' else
-                queryset.exclude(id__in=recipes_id_list))
-        else:
+        if user.is_anonymous:
             return queryset.none()
+
+        recipes_id = user.favorite.filter(user=user).values_list(
+                'recipe', flat=True)
+        return queryset.filter(id__in=recipes_id) if value else queryset.all()
 
     def get_shopping_cart(self, queryset, name, value):
         user = self.request.user
-        if user.is_authenticated:
-            user_obj = user.shopping_cart.all()
-            recipes_id_list = [obj.recipe_id for obj in user_obj]
-            return (
-                queryset.filter(id__in=recipes_id_list) if value == '1' else
-                queryset.exclude(id__in=recipes_id_list))
-        else:
+        if user.is_anonymous:
             return queryset.none()
+
+        recipes_id = user.shopping_cart.filter(user=user).values_list(
+            'recipe', flat=True)
+        return queryset.filter(id__in=recipes_id) if value else queryset.all()
 
 
 class IngredientFilter(filters.FilterSet):

@@ -1,21 +1,22 @@
 import base64
 
 import webcolors
+
 from django.contrib.auth import get_user_model
 from django.contrib.auth.hashers import check_password
 from django.contrib.auth.password_validation import validate_password
 from django.core import exceptions as django_exceptions
 from django.core.files.base import ContentFile
-from django.core.validators import MinValueValidator
-from djoser.serializers import (PasswordSerializer, UserCreateSerializer,
-                                UserSerializer)
-from foodgram.settings import RECIPES_LIMIT
-from recipes.models import (Favorite, Ingredient, IngredientRecipe, Recipe,
-                            ShoppingCart, Tag)
-from users.models import Subscribe
-
+from djoser.serializers import (
+    PasswordSerializer, UserCreateSerializer, UserSerializer
+)
 from rest_framework import serializers
 
+from foodgram.settings import RECIPES_LIMIT
+from recipes.models import (
+    Favorite, Ingredient, IngredientRecipe, Recipe, ShoppingCart, Tag
+)
+from users.models import Subscribe
 
 User = get_user_model()
 
@@ -55,12 +56,8 @@ class UserReadSerializer(UserSerializer):
 
     def get_is_subscribed(self, obj):
         user = self.context.get('request').user
-        if user.is_authenticated:
-            is_subscribed = user.subscriber.filter(author=obj.id).exists()
-        else:
-            is_subscribed = False
-
-        return is_subscribed
+        return user.is_authenticated and user.subscriber.filter(
+            author=obj.id).exists()
 
 
 class ChangePasswordSerializer(PasswordSerializer):
@@ -70,12 +67,12 @@ class ChangePasswordSerializer(PasswordSerializer):
 
     def validate(self, data):
         user = self.context.get('request').user
-        if check_password(data.get('current_password'), user.password):
-            if data.get('current_password') == data.get('new_password'):
-                raise serializers.ValidationError(
-                    'Пароли не могут быть оинаковыми')
-        else:
+        if not check_password(data.get('current_password'), user.password):
             raise serializers.ValidationError('Ведите корректный пароль')
+
+        if data.get('current_password') == data.get('new_password'):
+            raise serializers.ValidationError(
+                'Пароли не могут быть одинаковыми')
 
         try:
             validate_password(data.get('new_password'), user)
@@ -88,8 +85,8 @@ class ChangePasswordSerializer(PasswordSerializer):
 
 class RecipeListSerializer(serializers.ModelSerializer):
     """Сериализатор для вывода поля 'recipes' в просмотре подписок,
-       вывод избранных рецептов и покупок."""
-
+       вывод избранных рецептов и покупок.
+    """
     class Meta:
         model = Recipe
         fields = (
@@ -128,21 +125,18 @@ class SubscribeReadSerializer(serializers.ModelSerializer):
 
     def get_is_subscribed(self, obj):
         user = self.context.get('request').user
-        is_subscribed = user.subscriber.filter(author=obj.id).exists()
-        return is_subscribed
+        return user.subscriber.filter(author=obj.id).exists()
 
     def get_recipes(self, obj):
         recipes = obj.recipes.all()[:RECIPES_LIMIT]
-        serializer = RecipeListSerializer(
+        return RecipeListSerializer(
             recipes,
             many=True,
             context={'request': self.context.get('request')}
-        )
-        return serializer.data
+        ).data
 
     def get_recipes_count(self, obj):
-        recipes = obj.recipes.all()
-        return recipes.count()
+        return obj.recipes.count()
 
 
 class SubscribeCreateSerializer(serializers.ModelSerializer):
@@ -173,11 +167,10 @@ class SubscribeCreateSerializer(serializers.ModelSerializer):
         return data
 
     def to_representation(self, instance):
-        serializer = SubscribeReadSerializer(
+        return SubscribeReadSerializer(
             instance.author,
             context={'request': self.context.get('request')}
-        )
-        return serializer.data
+        ).data
 
 
 class Hex2NameColor(serializers.Field):
@@ -236,7 +229,6 @@ class IngredientRecipeSerializer(serializers.ModelSerializer):
         (создание/редактирование/удаление)."""
 
     id = serializers.IntegerField()
-    amount = serializers.IntegerField(validators=(MinValueValidator(1),),)
 
     class Meta:
         model = IngredientRecipe
@@ -258,8 +250,8 @@ class IngredientSerializer(serializers.ModelSerializer):
 class RecipeReadSerializer(serializers.ModelSerializer):
     """Сериализатор для просмотра рецептов (GET- запросы)."""
 
-    ingredients = serializers.SerializerMethodField(
-        method_name='get_ingredients'
+    ingredients = IngredientRecipeReadSerializer(
+        source='ingredientrecipe_set', many=True
     )
     is_favorited = serializers.SerializerMethodField(
         method_name='get_is_favorited'
@@ -286,29 +278,15 @@ class RecipeReadSerializer(serializers.ModelSerializer):
             'is_in_shopping_cart'
         )
 
-    def get_ingredients(self, obj):
-        ingredients = IngredientRecipeReadSerializer(
-            IngredientRecipe.objects.filter(recipe=obj).all(), many=True
-        )
-        return ingredients.data
-
     def get_is_favorited(self, obj):
         user = self.context.get('request').user
-        if user.is_authenticated:
-            is_favorited = user.favorite.filter(recipe=obj).exists()
-        else:
-            is_favorited = False
-
-        return is_favorited
+        return user.is_authenticated and user.favorite.filter(
+            recipe=obj).exists()
 
     def get_shopping_cart(self, obj):
         user = self.context.get('request').user
-        if user.is_authenticated:
-            shopping_cart = user.shopping_cart.filter(recipe=obj).exists()
-        else:
-            shopping_cart = False
-
-        return shopping_cart
+        return user.is_authenticated and user.shopping_cart.filter(
+            recipe=obj).exists()
 
 
 class RecipeSerializer(serializers.ModelSerializer):
@@ -379,13 +357,15 @@ class RecipeSerializer(serializers.ModelSerializer):
         recipe = Recipe.objects.create(author=author, **validated_data)
         recipe.tags.set(tag_data)
 
-        for ingredient in ingredient_data:
-            amount = ingredient.get('amount')
-            ingredient_obj = Ingredient.objects.get(
-                id=ingredient.get('id')
+        ingredient_recipe = [
+            IngredientRecipe(
+                recipe=recipe,
+                ingredient_id=ingredient.get('id'),
+                amount=ingredient.get('amount')
             )
-            IngredientRecipe.objects.create(
-                recipe=recipe, ingredient=ingredient_obj, amount=amount)
+            for ingredient in ingredient_data
+        ]
+        IngredientRecipe.objects.bulk_create(ingredient_recipe)
         return recipe
 
     def update(self, instance, validated_data):
@@ -399,12 +379,16 @@ class RecipeSerializer(serializers.ModelSerializer):
         if 'ingredients' in validated_data:
             ingredient_data = validated_data.pop('ingredients')
             instance.ingredients.clear()
-            for ingredient in ingredient_data:
-                amount = ingredient.get('amount')
-                ingredient_obj = Ingredient.objects.get(
-                    id=ingredient.get('id'))
-                IngredientRecipe.objects.create(
-                    recipe=instance, ingredient=ingredient_obj, amount=amount)
+
+        ingredient_recipe = [
+            IngredientRecipe(
+                recipe=instance,
+                ingredient_id=ingredient.get('id'),
+                amount=ingredient.get('amount')
+            )
+            for ingredient in ingredient_data
+        ]
+        IngredientRecipe.objects.bulk_create(ingredient_recipe)
 
         if 'tags' in validated_data:
             tags_data = validated_data.pop('tags')
@@ -414,11 +398,10 @@ class RecipeSerializer(serializers.ModelSerializer):
         return instance
 
     def to_representation(self, instance):
-        serializer = RecipeReadSerializer(
+        return RecipeReadSerializer(
             instance,
             context={'request': self.context.get('request')}
-        )
-        return serializer.data
+        ).data
 
 
 class FavoriteSerializer(serializers.ModelSerializer):
@@ -446,11 +429,10 @@ class FavoriteSerializer(serializers.ModelSerializer):
         return data
 
     def to_representation(self, instance):
-        serializer = RecipeListSerializer(
+        return RecipeListSerializer(
             instance.recipe,
             context={'request': self.context.get('request')}
-        )
-        return serializer.data
+        ).data
 
 
 class ShoppingCartSerializer(serializers.ModelSerializer):
@@ -478,8 +460,7 @@ class ShoppingCartSerializer(serializers.ModelSerializer):
         return data
 
     def to_representation(self, instance):
-        serializer = RecipeListSerializer(
+        return RecipeListSerializer(
             instance.recipe,
             context={'request': self.context.get('request')}
-        )
-        return serializer.data
+        ).data

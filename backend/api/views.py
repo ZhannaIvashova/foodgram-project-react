@@ -1,33 +1,30 @@
 from django.contrib.auth import get_user_model
-from django_filters.rest_framework import DjangoFilterBackend
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
-
-from rest_framework import filters, mixins, viewsets, status
-from rest_framework.permissions import (
-    IsAuthenticated, IsAuthenticatedOrReadOnly
-)
-from rest_framework.decorators import action
-from rest_framework.response import Response
-
-from api.filters import IngredientFilter, RecipeFilter
-from api.pagination import CustomPagination
-from api.permissions import (
-    AdminOrAuthorOrReadOnly, UserOrAdminOrReadOnly
-)
-from api.serializers import (
-    ChangePasswordSerializer, FavoriteSerializer, IngredientSerializer,
-    RecipeReadSerializer, RecipeSerializer, ShoppingCartSerializer,
-    SubscribeCreateSerializer, SubscribeReadSerializer,
-    TagSerializer, UserCreateSerializer, UserReadSerializer
-)
-from foodgram.settings import (
-    DOWNLOAD, SET_PASSWORD, SUBSCRIPTIONS, USER_ME
-)
+from django_filters.rest_framework import DjangoFilterBackend
+from foodgram.settings import DOWNLOAD, SET_PASSWORD, SUBSCRIPTIONS, USER_ME
 from recipes.models import (
     Favorite, Ingredient, IngredientRecipe, Recipe, ShoppingCart, Tag
 )
+from rest_framework import filters, mixins, status, viewsets
+from rest_framework.decorators import action
+from rest_framework.permissions import (
+    IsAuthenticated, IsAuthenticatedOrReadOnly
+)
+from rest_framework.response import Response
 from users.models import Subscribe
+
+from api.filters import IngredientFilter, RecipeFilter
+from api.pagination import CustomPagination
+from api.permissions import AdminOrAuthorOrReadOnly, UserOrAdminOrReadOnly
+from api.serializers import (
+    ChangePasswordSerializer, FavoriteSerializer,
+    IngredientSerializer, RecipeReadSerializer,
+    RecipeSerializer, ShoppingCartSerializer,
+    SubscribeCreateSerializer,
+    SubscribeReadSerializer, TagSerializer,
+    UserCreateSerializer, UserReadSerializer
+)
 
 User = get_user_model()
 
@@ -77,8 +74,8 @@ class UserViewSet(viewsets.ModelViewSet):
             user.set_password(new_password)
             user.save()
             return Response({'detail': 'Пароль успешно изменен'})
-        else:
-            return Response(
+
+        return Response(
                 serializer.errors, status=status.HTTP_400_BAD_REQUEST
             )
 
@@ -91,8 +88,8 @@ class UserViewSet(viewsets.ModelViewSet):
     def get_subscriptions(self, request):
         """Определяет сериализатор для просмотра подписок."""
         user = self.request.user
-        user_obj = user.subscriber.all()
-        author_id = [obj.author_id for obj in user_obj]
+        author_id = Subscribe.objects.filter(user=user).values_list(
+            'author', flat=True)
         author_obj = User.objects.filter(id__in=author_id)
 
         page = self.paginate_queryset(author_obj)
@@ -108,7 +105,8 @@ class UserViewSet(viewsets.ModelViewSet):
 
 class SubscribeViewSet(mixins.CreateModelMixin, mixins.DestroyModelMixin,
                        viewsets.GenericViewSet):
-    """Вьюсет для создания/удаления подписок ."""
+    """Вьюсет для создания/удаления подписок."""
+
     serializer_class = SubscribeCreateSerializer
     permission_classes = (IsAuthenticated, )
 
@@ -125,14 +123,14 @@ class SubscribeViewSet(mixins.CreateModelMixin, mixins.DestroyModelMixin,
     def delete(self, request, user_id):
         user = request.user
         author = get_object_or_404(User, id=user_id)
-        if user.subscriber.filter(author=user_id).exists():
-            subscription = Subscribe.objects.get(user=user, author=author)
-            subscription.delete()
-        else:
+        subscription = Subscribe.objects.filter(
+            user=user, author=author).first()
+        if not subscription:
             return Response(
                 {'detail': 'Вы не подписаны на данного пользователя'},
                 status=status.HTTP_404_NOT_FOUND
             )
+        subscription.delete()
         return Response(
             {'detail': 'Успешная отписка'},
             status=status.HTTP_204_NO_CONTENT
@@ -181,8 +179,8 @@ class RecipeViewSet(viewsets.ModelViewSet):
     def get_shopping_cart(self, request):
         """Скачивание списка покупок."""
         user = self.request.user
-        user_obj = user.shopping_cart.all()
-        recipes_id = [obj.recipe_id for obj in user_obj]
+        recipes_id = ShoppingCart.objects.filter(user=user).values_list(
+            'recipe', flat=True)
         recipes = IngredientRecipe.objects.filter(recipe_id__in=recipes_id)
         recipes_dict = {}
         for recipe in recipes:
@@ -213,6 +211,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
 class FavoriteViewSet(mixins.CreateModelMixin, mixins.DestroyModelMixin,
                       viewsets.GenericViewSet):
     """Вьюсет для создания/удаления избранного."""
+
     serializer_class = FavoriteSerializer
     permission_classes = (IsAuthenticated, )
 
@@ -229,20 +228,21 @@ class FavoriteViewSet(mixins.CreateModelMixin, mixins.DestroyModelMixin,
     def delete(self, request, recipe_id):
         user = request.user
         recipe = get_object_or_404(Recipe, id=recipe_id)
-        if user.favorite.filter(recipe=recipe_id).exists():
-            favorite = Favorite.objects.get(user=user, recipe=recipe)
-            favorite.delete()
-        else:
+        favorite = Favorite.objects.filter(user=user, recipe=recipe).first()
+        if not favorite:
             return Response(
                 {'detail': 'Рецепт не был добавлен в избранное'},
                 status=status.HTTP_404_NOT_FOUND
             )
-        return Response(status=status.HTTP_204_NO_CONTENT)
+        favorite.delete()
+        return Response({'detail': 'Рецепт удален из избранного'},
+                        status=status.HTTP_204_NO_CONTENT)
 
 
 class ShoppingCartViewSet(mixins.CreateModelMixin, mixins.DestroyModelMixin,
                           viewsets.GenericViewSet):
     """Вьюсет для создания/удаления покупок."""
+
     serializer_class = ShoppingCartSerializer
     permission_classes = (IsAuthenticated, )
 
@@ -259,12 +259,13 @@ class ShoppingCartViewSet(mixins.CreateModelMixin, mixins.DestroyModelMixin,
     def delete(self, request, recipe_id):
         user = request.user
         recipe = get_object_or_404(Recipe, id=recipe_id)
-        if user.shopping_cart.filter(recipe=recipe_id).exists():
-            shopping_cart = ShoppingCart.objects.get(user=user, recipe=recipe)
-            shopping_cart.delete()
-        else:
+        shopping_cart = ShoppingCart.objects.filter(
+            user=user, recipe=recipe).first()
+        if not shopping_cart:
             return Response(
                 {'detail': 'Рецепт не был добавлен в список покупок'},
                 status=status.HTTP_404_NOT_FOUND
             )
-        return Response(status=status.HTTP_204_NO_CONTENT)
+        shopping_cart.delete()
+        return Response({'detail': 'Рецепт удален из списка покупок'},
+                        status=status.HTTP_204_NO_CONTENT)

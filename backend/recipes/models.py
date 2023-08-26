@@ -84,8 +84,9 @@ class Recipe(models.Model):
         through='TagRecipe',
         verbose_name='Тег рецепта'
     )
-    cooking_time = models.IntegerField(
-        validators=(MinValueValidator(1),),
+    cooking_time = models.PositiveSmallIntegerField(
+        validators=(MinValueValidator(
+            1, message='Минимальное время не должно быть меньше 1 мин.'),),
         verbose_name='Время приготовления (мин)'
     )
     author = models.ForeignKey(
@@ -121,7 +122,7 @@ class IngredientRecipe(models.Model):
         on_delete=models.CASCADE,
         verbose_name='Рецепт'
     )
-    amount = models.IntegerField(
+    amount = models.PositiveSmallIntegerField(
         validators=(MinValueValidator(1),),
         verbose_name='Количество кг/г/мл/шт'
     )
