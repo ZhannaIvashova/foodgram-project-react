@@ -6,6 +6,17 @@ from recipes.models import (
 )
 
 
+class IngredientRecipeInline(admin.StackedInline):
+    model = IngredientRecipe
+    extra = 1
+    autocomplete_fields = ('ingredient',)
+
+
+class TagRecipeInline(admin.StackedInline):
+    model = TagRecipe
+    extra = 1
+
+
 @admin.register(Ingredient)
 class IngredientAdmin(admin.ModelAdmin):
     """Настройки админ-панели ингредиентов."""
@@ -57,6 +68,8 @@ class RecipeAdmin(admin.ModelAdmin):
         return favorite_count
 
     is_favorited.short_description = 'Добавлен в избранное (кол.раз)'
+
+    inlines = (IngredientRecipeInline, TagRecipeInline)
 
 
 @admin.register(IngredientRecipe)

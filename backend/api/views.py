@@ -2,17 +2,13 @@ from django.contrib.auth import get_user_model
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
-from foodgram.settings import DOWNLOAD, SET_PASSWORD, SUBSCRIPTIONS, USER_ME
-from recipes.models import (
-    Favorite, Ingredient, IngredientRecipe, Recipe, ShoppingCart, Tag
-)
+
 from rest_framework import filters, mixins, status, viewsets
 from rest_framework.decorators import action
+from rest_framework.response import Response
 from rest_framework.permissions import (
     IsAuthenticated, IsAuthenticatedOrReadOnly
 )
-from rest_framework.response import Response
-from users.models import Subscribe
 
 from api.filters import IngredientFilter, RecipeFilter
 from api.pagination import CustomPagination
@@ -25,6 +21,11 @@ from api.serializers import (
     SubscribeReadSerializer, TagSerializer,
     UserCreateSerializer, UserReadSerializer
 )
+from foodgram.settings import DOWNLOAD, SET_PASSWORD, SUBSCRIPTIONS, USER_ME
+from recipes.models import (
+    Favorite, Ingredient, IngredientRecipe, Recipe, ShoppingCart, Tag
+)
+from users.models import Subscribe
 
 User = get_user_model()
 

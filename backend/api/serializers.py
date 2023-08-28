@@ -227,12 +227,18 @@ class IngredientRecipeReadSerializer(serializers.ModelSerializer):
 class IngredientRecipeSerializer(serializers.ModelSerializer):
     """Сериализатор для связи рецептов и ингредиентов
         (создание/редактирование/удаление)."""
-
-    id = serializers.IntegerField()
+    '''
+    когда я убираю id = serializers.IntegerField(), выходит ошибка
+    IntegrityError at /api/recipes/
+    null value in column "ingredient_id" of relation "recipes_ingredientrecipe"
+    violates not-null constraint
+    DETAIL:  Failing row contains (72, 30, null, 23)
+    '''
+    id = serializers.IntegerField(write_only=True)
 
     class Meta:
         model = IngredientRecipe
-        fields = ('id', 'amount')
+        fields = ('id', 'amount',)
 
 
 class IngredientSerializer(serializers.ModelSerializer):
